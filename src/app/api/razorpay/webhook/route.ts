@@ -9,18 +9,22 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Subscribe this endpoint to the `order.paid` event.
  */
 export async function POST(request: Request) {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  // Trim defensively — a stray newline/space on either the env value or the
+  // dashboard paste is the usual cause of a signature mismatch.
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET?.trim();
   if (!secret)
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
 
   const body = await request.text();
-  const signature = request.headers.get("x-razorpay-signature") ?? "";
+  const signature = (request.headers.get("x-razorpay-signature") ?? "").trim();
   const expected = createHmac("sha256", secret).update(body).digest("hex");
 
   const sigBuf = Buffer.from(signature);
   const expBuf = Buffer.from(expected);
   if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
-    console.error("razorpay webhook signature mismatch");
+    console.error(
+      `razorpay webhook signature mismatch (got ${signature.length} hex chars, secret len ${secret.length})`
+    );
     return NextResponse.json({ error: "bad_signature" }, { status: 400 });
   }
 
