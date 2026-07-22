@@ -130,7 +130,9 @@ export async function runAgent(opts: {
 
     if (result.toolCalls.length === 0) {
       return {
-        text: result.text || "I wasn't able to produce an answer.",
+        text:
+          repairArtifactLinks(result.text, steps) ||
+          "I wasn't able to produce an answer.",
         steps,
         cut: overDeadline ? "deadline" : undefined,
       };
@@ -159,6 +161,25 @@ export async function runAgent(opts: {
     steps,
     cut: "iterations",
   };
+}
+
+/**
+ * Safety net: if the model wrote a storage signed URL anyway, it is almost
+ * certainly mangled (models corrupt long tokens when retyping them). Replace
+ * any such link with the real one captured server-side in the pdf step.
+ */
+function repairArtifactLinks(text: string, steps: AgentStep[]): string {
+  const pdf = [...steps].reverse().find((s) => s.type === "pdf" && s.url);
+  if (!pdf || !text.includes("/storage/v1/object/sign/")) return text;
+  let out = text.replace(
+    /\[([^\]]*)\]\(https?:\/\/[^)\s]*\/storage\/v1\/object\/sign\/[^)\s]*\)/g,
+    () => `[${pdf.name}](${pdf.url})`
+  );
+  out = out.replace(
+    /https?:\/\/[^\s)\]]+\/storage\/v1\/object\/sign\/[^\s)\]]+/g,
+    pdf.url!
+  );
+  return out;
 }
 
 async function executeTool(
@@ -208,7 +229,10 @@ async function executeTool(
       const step: AgentStep = { type: "pdf", name: pdf.name, url: pdf.url };
       ctx.steps.push(step);
       ctx.emit({ type: "step", step });
-      return `PDF created successfully. Download URL: ${pdf.url}\nInclude this link in your answer as [${pdf.name}](${pdf.url}).`;
+      // NEVER give the model the signed URL — models mangle long opaque
+      // tokens when retyping them, breaking the signature. The exact URL is
+      // attached to the reply server-side as a download card.
+      return `PDF created successfully: ${pdf.name}. A download card with the link is automatically attached beneath your reply — do NOT write any URL for it. Tell the user the report is ready and summarize what it covers.`;
     }
 
     return `Error: unknown tool "${name}".`;
