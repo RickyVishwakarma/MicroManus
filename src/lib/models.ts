@@ -46,11 +46,20 @@ export const PROVIDERS: Record<
   },
 };
 
+// Prices are the vendors' published USD-per-million-token rates at time of
+// writing. cacheRead ≈ 0.1× input for OpenAI/Kimi/Gemini and the published
+// cache-read rate for Anthropic. The usage page reads only from this table.
 export const MODELS: ModelInfo[] = [
-  // Anthropic — called via its native /v1/messages API (see lib/llm.ts)
+  // ── Anthropic (Claude) — called via native /v1/messages API (see lib/llm.ts)
   {
-    id: "claude-sonnet-4-5",
-    label: "Claude Sonnet 4.5",
+    id: "claude-opus-4-8",
+    label: "Claude Opus 4.8",
+    provider: "anthropic",
+    pricing: { input: 5, output: 25, cacheRead: 0.5 },
+  },
+  {
+    id: "claude-sonnet-5",
+    label: "Claude Sonnet 5",
     provider: "anthropic",
     pricing: { input: 3, output: 15, cacheRead: 0.3 },
   },
@@ -60,13 +69,7 @@ export const MODELS: ModelInfo[] = [
     provider: "anthropic",
     pricing: { input: 1, output: 5, cacheRead: 0.1 },
   },
-  {
-    id: "claude-opus-4-5",
-    label: "Claude Opus 4.5",
-    provider: "anthropic",
-    pricing: { input: 5, output: 25, cacheRead: 0.5 },
-  },
-  // OpenAI
+  // ── OpenAI
   {
     id: "gpt-5.1",
     label: "GPT-5.1",
@@ -85,7 +88,7 @@ export const MODELS: ModelInfo[] = [
     provider: "openai",
     pricing: { input: 0.15, output: 0.6, cacheRead: 0.075 },
   },
-  // Moonshot (Kimi)
+  // ── Moonshot (Kimi)
   {
     id: "kimi-k2-0905-preview",
     label: "Kimi K2",
@@ -93,12 +96,18 @@ export const MODELS: ModelInfo[] = [
     pricing: { input: 0.6, output: 2.5, cacheRead: 0.15 },
   },
   {
+    id: "kimi-k2-turbo-preview",
+    label: "Kimi K2 Turbo",
+    provider: "moonshot",
+    pricing: { input: 1.15, output: 8, cacheRead: 0.15 },
+  },
+  {
     id: "kimi-k2-thinking",
     label: "Kimi K2 Thinking",
     provider: "moonshot",
     pricing: { input: 0.6, output: 2.5, cacheRead: 0.15 },
   },
-  // Google Gemini — via its OpenAI-compatible endpoint (bonus provider)
+  // ── Google (Gemini) — via OpenAI-compatible endpoint (bonus 4th provider)
   {
     id: "gemini-2.5-flash",
     label: "Gemini 2.5 Flash",
