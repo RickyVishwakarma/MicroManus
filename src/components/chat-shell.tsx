@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Logo } from "./logo";
 
 interface ThreadRow {
@@ -23,14 +24,35 @@ export function ChatShell({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const params = useParams<{ id?: string }>();
   const activeId = params?.id;
+
+  // Persist the desktop collapse choice across page navigations (ChatShell
+  // remounts per page, so state alone wouldn't survive).
+  useEffect(() => {
+    setCollapsed(localStorage.getItem("mm_sidebar_collapsed") === "1");
+  }, []);
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      localStorage.setItem("mm_sidebar_collapsed", next ? "1" : "0");
+      return next;
+    });
+  };
 
   const sidebar = (
     <div className="flex h-full w-64 flex-col border-r border-line bg-surface">
       <div className="flex items-center gap-2 px-4 py-4">
         <Logo className="h-7 w-7" />
         <span className="font-semibold">MicroManus</span>
+        <button
+          onClick={toggleCollapsed}
+          aria-label="Collapse sidebar"
+          className="ml-auto hidden rounded-md p-1 text-muted transition hover:bg-surface-2 hover:text-foreground md:block"
+        >
+          <PanelLeftClose className="h-5 w-5" />
+        </button>
       </div>
 
       <div className="px-3">
@@ -120,9 +142,9 @@ export function ChatShell({
   );
 
   return (
-    <div className="flex h-dvh overflow-hidden">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:block">{sidebar}</aside>
+    <div className="relative flex h-dvh overflow-hidden">
+      {/* Desktop sidebar (collapsible) */}
+      {!collapsed && <aside className="hidden md:block">{sidebar}</aside>}
 
       {/* Mobile drawer */}
       {open && (
@@ -133,6 +155,17 @@ export function ChatShell({
           />
           <aside className="absolute inset-y-0 left-0 z-50">{sidebar}</aside>
         </div>
+      )}
+
+      {/* Desktop: floating button to reveal a collapsed sidebar */}
+      {collapsed && (
+        <button
+          onClick={toggleCollapsed}
+          aria-label="Open sidebar"
+          className="absolute left-3 top-3 z-30 hidden items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-muted shadow-sm transition hover:text-foreground md:flex"
+        >
+          <PanelLeftOpen className="h-5 w-5" />
+        </button>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
