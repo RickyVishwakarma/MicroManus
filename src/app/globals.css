@@ -1,19 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0c12;
-  --surface: #11141d;
-  --surface-2: #181c28;
-  --line: #242a3a;
-  --foreground: #e8eaf0;
-  --muted: #8b91a5;
-  --accent: #6d5df6;
-  --accent-hover: #7e6ff8;
-  --accent-soft: rgba(109, 93, 246, 0.12);
-  --danger: #f87171;
-  --danger-soft: rgba(248, 113, 113, 0.1);
-  --success: #4ade80;
-  --success-soft: rgba(74, 222, 128, 0.1);
+  /* Neutral near-black minimal palette (Linear/Vercel-style). */
+  --background: #0a0a0b;
+  --surface: #141416;
+  --surface-2: #1b1b1e;
+  --line: #262629;
+  --foreground: #f4f4f5;
+  --muted: #9a9aa4;
+  --accent: #7c6cf7;
+  --accent-hover: #8f80f9;
+  --accent-soft: rgba(124, 108, 247, 0.13);
+  --danger: #f26d6d;
+  --danger-soft: rgba(242, 109, 109, 0.1);
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.1);
   --warning: #fbbf24;
 }
 
@@ -40,6 +41,13 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2 {
+  letter-spacing: -0.011em;
 }
 
 ::selection {
