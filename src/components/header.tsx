@@ -10,6 +10,18 @@ export function Header({ email }: { email: string }) {
           MicroManus
         </Link>
         <div className="flex items-center gap-4">
+          <Link
+            href="/chat"
+            className="text-sm text-muted transition hover:text-foreground"
+          >
+            Chat
+          </Link>
+          <Link
+            href="/usage"
+            className="text-sm text-muted transition hover:text-foreground"
+          >
+            Usage
+          </Link>
           <span className="hidden text-sm text-muted sm:inline">{email}</span>
           <form action="/auth/signout" method="post">
             <button className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition hover:text-foreground">
