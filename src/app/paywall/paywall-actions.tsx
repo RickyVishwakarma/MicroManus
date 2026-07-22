@@ -180,9 +180,9 @@ export function PaywallActions({ gateway }: { gateway: "stripe" | "razorpay" | "
             <>
               Test mode — no real money moves. Use card{" "}
               <span className="font-mono text-foreground/80">
-                4111 1111 1111 1111
+                5267 3181 8797 5449
               </span>
-              , any future expiry, any CVC, then any 4-digit OTP.
+              , any future expiry, any CVC, then any 4+ digit OTP.
             </>
           ) : (
             <>
