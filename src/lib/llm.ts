@@ -45,6 +45,7 @@ export interface LLMResult {
 export type LLMErrorKind =
   | "auth"
   | "rate_limit"
+  | "overloaded"
   | "model_not_found"
   | "provider"
   | "network";
@@ -287,64 +288,100 @@ async function callAnthropic(
 
 // ─── shared plumbing ──────────────────────────────────────────────────────────
 
+// Transient statuses worth one automatic retry — provider overload/rate spikes
+// (common on free tiers) usually clear within a second or two.
+const RETRYABLE = new Set([429, 500, 502, 503, 529]);
+const MAX_RETRIES = 2;
+
 async function postJson(
   url: string,
   headers: Record<string, string>,
   body: unknown
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json", ...headers },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
-    });
-  } catch (err) {
-    const timedOut = err instanceof Error && err.name === "TimeoutError";
-    throw new LLMError(
-      timedOut
-        ? "The provider took too long to respond."
-        : "Could not reach the provider — check the base URL.",
-      "network"
-    );
-  }
+  let lastErr: LLMError | null = null;
 
-  if (!res.ok) {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...headers },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+      });
+    } catch (err) {
+      const timedOut = err instanceof Error && err.name === "TimeoutError";
+      lastErr = new LLMError(
+        timedOut
+          ? "The provider took too long to respond."
+          : "Could not reach the provider — check the base URL.",
+        "network"
+      );
+      if (attempt < MAX_RETRIES) {
+        await sleep(backoff(attempt));
+        continue;
+      }
+      throw lastErr;
+    }
+
+    if (res.ok) return res.json();
+
     let detail = "";
     try {
       const j = await res.json();
-      detail = j.error?.message ?? j.message ?? JSON.stringify(j).slice(0, 300);
+      detail = j.error?.message ?? j.message ?? JSON.stringify(j).slice(0, 200);
     } catch {
-      detail = await res.text().then((t) => t.slice(0, 300)).catch(() => "");
+      detail = await res
+        .text()
+        .then((t) => t.slice(0, 200))
+        .catch(() => "");
     }
+
     if (res.status === 401 || res.status === 403)
-      throw new LLMError(
-        "The provider rejected this API key.",
-        "auth",
-        res.status
-      );
+      throw new LLMError("The provider rejected this API key.", "auth", res.status);
     if (res.status === 404)
       throw new LLMError(
-        `Model or endpoint not found: ${detail}`,
+        `That model isn't available on this key: ${detail}`,
         "model_not_found",
         404
       );
+
     if (res.status === 429)
-      throw new LLMError(
-        "The provider is rate-limiting this key. Try again shortly.",
+      lastErr = new LLMError(
+        "The provider is rate-limiting this key. Please try again in a moment.",
         "rate_limit",
         429
       );
-    throw new LLMError(
-      `Provider error (${res.status}): ${detail}`,
-      "provider",
-      res.status
-    );
+    else if (res.status === 503 || res.status === 529 || res.status === 500 || res.status === 502)
+      lastErr = new LLMError(
+        "The model provider is temporarily overloaded. Please try again in a moment.",
+        "overloaded",
+        res.status
+      );
+    else
+      lastErr = new LLMError(
+        `The provider returned an error (${res.status}). ${detail}`.trim(),
+        "provider",
+        res.status
+      );
+
+    if (RETRYABLE.has(res.status) && attempt < MAX_RETRIES) {
+      await sleep(backoff(attempt));
+      continue;
+    }
+    throw lastErr;
   }
 
-  return res.json();
+  throw lastErr ?? new LLMError("The provider request failed.", "provider");
+}
+
+function backoff(attempt: number): number {
+  return 1200 * (attempt + 1) + Math.random() * 400; // ~1.2s, ~2.4s
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 function safeParse(json: string): unknown {
