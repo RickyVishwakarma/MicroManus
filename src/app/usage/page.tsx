@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeCost } from "@/lib/models";
-import { Header } from "@/components/header";
+import { getSidebarData } from "@/lib/sidebar-data";
+import { ChatShell } from "@/components/chat-shell";
 
 interface Row {
   threadId: string;
@@ -31,12 +32,13 @@ export default async function UsagePage() {
   if (!user) redirect("/signin");
 
   const admin = createAdminClient();
-  const [events, threads] = await Promise.all([
+  const [events, threads, sidebar] = await Promise.all([
     admin
       .from("usage_events")
       .select("thread_id, model, input_tokens, output_tokens, cached_tokens")
       .eq("user_id", user.id),
     admin.from("threads").select("id, title, updated_at").eq("user_id", user.id),
+    getSidebarData(admin, user.id),
   ]);
 
   const titles = new Map(
@@ -99,9 +101,13 @@ export default async function UsagePage() {
   );
 
   return (
-    <>
-      <Header email={user.email ?? ""} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
+    <ChatShell
+      email={user.email ?? ""}
+      balance={sidebar.balance}
+      threads={sidebar.threads}
+    >
+      <main className="flex-1 overflow-y-auto px-4 py-10">
+        <div className="mx-auto w-full max-w-5xl">
         <div className="flex items-end justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
@@ -215,7 +221,8 @@ export default async function UsagePage() {
             </p>
           </>
         )}
+        </div>
       </main>
-    </>
+    </ChatShell>
   );
 }
