@@ -59,8 +59,8 @@ create table public.credit_grants (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
   amount int not null check (amount > 0),
-  source text not null check (source in ('coupon', 'stripe')),
-  source_ref text not null, -- coupon code, or Stripe checkout session id
+  source text not null check (source in ('coupon', 'stripe', 'razorpay')),
+  source_ref text not null, -- coupon code, Stripe session id, or Razorpay order id
   created_at timestamptz not null default now()
 );
 -- Idempotency: a user can redeem a given coupon once; a Stripe session id

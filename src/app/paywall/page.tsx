@@ -48,7 +48,15 @@ export default async function PaywallPage({
           </div>
         )}
 
-        <PaywallActions />
+        <PaywallActions
+          gateway={
+            process.env.STRIPE_SECRET_KEY
+              ? "stripe"
+              : process.env.RAZORPAY_KEY_ID
+                ? "razorpay"
+                : "none"
+          }
+        />
       </main>
     </>
   );

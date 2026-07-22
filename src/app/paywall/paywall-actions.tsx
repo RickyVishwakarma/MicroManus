@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function PaywallActions() {
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, unknown>) => { open: () => void };
+  }
+}
+
+export function PaywallActions({ gateway }: { gateway: "stripe" | "razorpay" | "none" }) {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [couponState, setCouponState] = useState<
@@ -44,25 +50,78 @@ export function PaywallActions() {
     }
   }
 
+  function loadRazorpayScript(): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (window.Razorpay) return resolve(true);
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  }
+
   async function pay() {
     setPayPending(true);
     setPayError(null);
     try {
       const res = await fetch("/api/checkout", { method: "POST" });
       const data = await res.json();
-      if (res.ok && data.url) {
+      if (!res.ok) {
+        setPayError(
+          data.error === "not_configured"
+            ? "Payments aren't configured yet — use the coupon instead."
+            : "Could not start checkout. Please try again."
+        );
+        setPayPending(false);
+        return;
+      }
+
+      if (data.gateway === "stripe" && data.url) {
         window.location.href = data.url;
         return;
       }
-      setPayError(
-        data.error === "stripe_not_configured"
-          ? "Payments aren't configured yet — use the coupon instead."
-          : "Could not start checkout. Please try again."
-      );
+
+      if (data.gateway === "razorpay") {
+        const loaded = await loadRazorpayScript();
+        if (!loaded || !window.Razorpay) {
+          setPayError("Could not load the payment window. Please try again.");
+          setPayPending(false);
+          return;
+        }
+        const rzp = new window.Razorpay({
+          key: data.keyId,
+          order_id: data.orderId,
+          amount: data.amount,
+          currency: data.currency,
+          name: "MicroManus",
+          description: "5 research credits (≈ $5)",
+          prefill: { email: data.email },
+          theme: { color: "#6d5ce7" },
+          handler: () => {
+            // Payment accepted client-side; credits arrive via the webhook —
+            // the success page polls until they land.
+            router.push("/paywall/success");
+          },
+          modal: {
+            ondismiss: () => {
+              setPayPending(false);
+              setPayError(
+                "Checkout was closed — no charge was made. Try again or use the coupon."
+              );
+            },
+          },
+        });
+        rzp.open();
+        return;
+      }
+
+      setPayError("Could not start checkout. Please try again.");
+      setPayPending(false);
     } catch {
       setPayError("Network error — check your connection and try again.");
+      setPayPending(false);
     }
-    setPayPending(false);
   }
 
   return (
@@ -100,26 +159,40 @@ export function PaywallActions() {
         )}
       </div>
 
-      {/* Stripe */}
+      {/* Card payment */}
       <div className="rounded-xl border border-line bg-surface p-5">
         <h2 className="font-medium">Pay with card</h2>
         <p className="mt-1 text-sm text-muted">
-          $5 one-time via Stripe checkout.
+          {gateway === "razorpay"
+            ? "₹425 (≈ $5) one-time via Razorpay."
+            : "$5 one-time via Stripe checkout."}
         </p>
         <button
           onClick={pay}
           disabled={payPending}
           className="mt-4 w-full rounded-lg border border-accent/60 bg-accent-soft px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {payPending ? "Opening checkout…" : "Pay $5 — get 5 credits"}
+          {payPending ? "Opening checkout…" : "Pay — get 5 credits"}
         </button>
         {payError && <p className="mt-3 text-sm text-danger">{payError}</p>}
         <p className="mt-3 text-xs text-muted">
-          Test mode — no real money moves. Use card{" "}
-          <span className="font-mono text-foreground/80">
-            4242 4242 4242 4242
-          </span>
-          , any future expiry, any CVC.
+          {gateway === "razorpay" ? (
+            <>
+              Test mode — no real money moves. Use card{" "}
+              <span className="font-mono text-foreground/80">
+                4111 1111 1111 1111
+              </span>
+              , any future expiry, any CVC, then any 4-digit OTP.
+            </>
+          ) : (
+            <>
+              Test mode — no real money moves. Use card{" "}
+              <span className="font-mono text-foreground/80">
+                4242 4242 4242 4242
+              </span>
+              , any future expiry, any CVC.
+            </>
+          )}
         </p>
       </div>
     </div>
