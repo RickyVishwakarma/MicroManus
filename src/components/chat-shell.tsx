@@ -72,36 +72,49 @@ export function ChatShell({
       </nav>
 
       <div className="border-t border-line p-3 text-sm">
-        <div className="flex items-center justify-between px-1 py-1.5">
-          <span className="text-muted">Credits</span>
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-              balance > 0
-                ? "bg-success-soft text-success"
-                : "bg-danger-soft text-danger"
-            }`}
-          >
-            {balance}
+        <Link
+          href="/paywall"
+          onClick={() => setOpen(false)}
+          className="group mb-1 flex items-center justify-between rounded-lg px-2 py-2 transition hover:bg-surface-2"
+        >
+          <span className="flex items-center gap-2">
+            <span className="text-muted group-hover:text-foreground">
+              Credits
+            </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                balance > 0
+                  ? "bg-success-soft text-success"
+                  : "bg-danger-soft text-danger"
+              }`}
+            >
+              {balance}
+            </span>
           </span>
-        </div>
+          <span className="rounded-md bg-accent px-2 py-1 text-xs font-medium text-white transition group-hover:bg-accent-hover">
+            + Buy credits
+          </span>
+        </Link>
         <Link
           href="/usage"
-          className="block rounded-lg px-1 py-1.5 text-muted transition hover:text-foreground"
+          onClick={() => setOpen(false)}
+          className="block rounded-lg px-2 py-1.5 text-muted transition hover:text-foreground"
         >
           Usage & costs
         </Link>
         <Link
           href="/setup-key"
-          className="block rounded-lg px-1 py-1.5 text-muted transition hover:text-foreground"
+          onClick={() => setOpen(false)}
+          className="block rounded-lg px-2 py-1.5 text-muted transition hover:text-foreground"
         >
           API key settings
         </Link>
         <form action="/auth/signout" method="post">
-          <button className="w-full rounded-lg px-1 py-1.5 text-left text-muted transition hover:text-foreground">
+          <button className="w-full rounded-lg px-2 py-1.5 text-left text-muted transition hover:text-foreground">
             Sign out
           </button>
         </form>
-        <p className="truncate px-1 pt-1 text-xs text-muted/70">{email}</p>
+        <p className="truncate px-2 pt-1 text-xs text-muted/70">{email}</p>
       </div>
     </div>
   );
