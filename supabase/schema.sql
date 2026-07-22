@@ -82,7 +82,7 @@ create index credit_grants_user_idx on public.credit_grants (user_id);
 -- ─── BYO LLM key (server-only, AES-256-GCM encrypted) ────────────────────────
 create table public.api_keys (
   user_id uuid primary key references auth.users (id) on delete cascade,
-  provider text not null check (provider in ('openai', 'anthropic', 'moonshot')),
+  provider text not null check (provider in ('openai', 'anthropic', 'moonshot', 'gemini')),
   base_url text not null,
   model text not null,
   encrypted_key text not null, -- iv.ciphertext.authTag, base64

@@ -62,7 +62,7 @@ export function KeyForm({ hasExisting }: { hasExisting: boolean }) {
     <form onSubmit={save} className="mt-6 flex flex-col gap-5">
       <div>
         <label className="text-sm font-medium">Provider</label>
-        <div className="mt-2 grid grid-cols-3 gap-2">
+        <div className="mt-2 grid grid-cols-2 gap-2">
           {(Object.keys(PROVIDERS) as Provider[]).map((p) => (
             <button
               type="button"

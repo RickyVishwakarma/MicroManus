@@ -3,7 +3,7 @@
  * vendor's published pricing. Cost math on the usage page reads exclusively
  * from this table so it can be hand-verified.
  */
-export type Provider = "openai" | "anthropic" | "moonshot";
+export type Provider = "openai" | "anthropic" | "moonshot" | "gemini";
 
 export interface ModelInfo {
   id: string; // id sent to the API
@@ -38,10 +38,16 @@ export const PROVIDERS: Record<
     keyUrl: "https://platform.moonshot.ai/console/api-keys",
     keyPrefix: "sk-",
   },
+  gemini: {
+    label: "Google (Gemini)",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    keyUrl: "https://aistudio.google.com/apikey",
+    keyPrefix: "AIza",
+  },
 };
 
 export const MODELS: ModelInfo[] = [
-  // Anthropic — via its OpenAI-compatible /v1/chat/completions endpoint
+  // Anthropic — called via its native /v1/messages API (see lib/llm.ts)
   {
     id: "claude-sonnet-4-5",
     label: "Claude Sonnet 4.5",
@@ -91,6 +97,19 @@ export const MODELS: ModelInfo[] = [
     label: "Kimi K2 Thinking",
     provider: "moonshot",
     pricing: { input: 0.6, output: 2.5, cacheRead: 0.15 },
+  },
+  // Google Gemini — via its OpenAI-compatible endpoint (bonus provider)
+  {
+    id: "gemini-2.5-flash",
+    label: "Gemini 2.5 Flash",
+    provider: "gemini",
+    pricing: { input: 0.3, output: 2.5, cacheRead: 0.075 },
+  },
+  {
+    id: "gemini-2.5-pro",
+    label: "Gemini 2.5 Pro",
+    provider: "gemini",
+    pricing: { input: 1.25, output: 10, cacheRead: 0.31 },
   },
 ];
 

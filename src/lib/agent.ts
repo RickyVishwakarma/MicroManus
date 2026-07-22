@@ -110,7 +110,9 @@ export async function runAgent(opts: {
       messages,
       tools: TOOLS,
       allowTools: !lastCall,
-      maxTokens: 4096,
+      // Generous: reasoning models (Gemini 2.5, Kimi thinking) spend part of
+      // the output budget on internal thinking before the visible answer.
+      maxTokens: 8192,
     });
 
     // Bill BEFORE doing anything else with the result.

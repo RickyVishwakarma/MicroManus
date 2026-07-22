@@ -7,7 +7,7 @@ import { validateKey, LLMError } from "@/lib/llm";
 import { getModel, PROVIDERS, type Provider } from "@/lib/models";
 
 const bodySchema = z.object({
-  provider: z.enum(["openai", "anthropic", "moonshot"]),
+  provider: z.enum(["openai", "anthropic", "moonshot", "gemini"]),
   model: z.string().min(1),
   apiKey: z.string().min(8).max(500),
   baseUrl: z.string().url().optional(),
