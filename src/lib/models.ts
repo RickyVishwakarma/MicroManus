@@ -69,6 +69,13 @@ export const MODELS: ModelInfo[] = [
     provider: "anthropic",
     pricing: { input: 1, output: 5, cacheRead: 0.1 },
   },
+  {
+    // Widely-available fallback for keys without newest-generation access.
+    id: "claude-sonnet-4-5",
+    label: "Claude Sonnet 4.5",
+    provider: "anthropic",
+    pricing: { input: 3, output: 15, cacheRead: 0.3 },
+  },
   // ── OpenAI
   {
     id: "gpt-5.1",
